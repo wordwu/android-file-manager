@@ -7,6 +7,12 @@ final class ThumbnailCache: @unchecked Sendable {
     private let cache = NSCache<NSString, NSImage>()
     private var loading: Set<String> = []
     private let loadingQueue = DispatchQueue(label: "thumbnail.loading")
+    private let thumbnailQueue: OperationQueue = {
+        let q = OperationQueue()
+        q.maxConcurrentOperationCount = 4
+        q.qualityOfService = .utility
+        return q
+    }()
 
     init() {
         cache.countLimit = C.thumbnailCacheCountLimit
@@ -17,9 +23,13 @@ final class ThumbnailCache: @unchecked Sendable {
         cache.object(forKey: path as NSString)
     }
 
+    @MainActor
     func load(for file: FileItem, device: Device) {
         let ext = (file.name as NSString).pathExtension.lowercased()
         guard C.imageExts.contains(ext), get(file.path) == nil else { return }
+
+        // 跳过大文件（>5MB），避免拉原图造成卡顿
+        if file.size > 5 * 1024 * 1024 { return }
 
         var shouldSkip = false
         loadingQueue.sync {
@@ -30,40 +40,44 @@ final class ThumbnailCache: @unchecked Sendable {
         let remotePath = file.path
         let deviceId = device.id
         let tmpPath = "\(C.tmpThumbPrefix)\(UUID().uuidString).\(ext)"
+        let adbPath = ADBService.shared.adbPath
+        let queue = thumbnailQueue
 
         Task.detached { [weak self] in
-            // Always clean up loading state
             defer {
                 _ = self?.loadingQueue.sync {
                     self?.loading.remove(remotePath)
                 }
             }
-            // Always clean up temp file
             defer {
-                do {
-                    try FileManager.default.removeItem(atPath: tmpPath)
-                } catch {
-                    androidFMLog("thumbnail temp cleanup failed: \(error.localizedDescription)")
-                }
+                try? FileManager.default.removeItem(atPath: tmpPath)
             }
-            do {
-                try await ADBService.shared.pullFile(
-                    device: deviceId,
-                    remotePath: remotePath,
-                    localPath: tmpPath
-                ) { _, _ in }
-                guard let img = NSImage(contentsOfFile: tmpPath) else { return }
-                let thumb = img.resized(to: C.thumbnailSize)
-                // cost = 估算内存字节数 (RGBA 4 bytes × width × height)
-                let estimatedCost = Int(C.thumbnailSize.width * C.thumbnailSize.height * 4)
-                self?.cache.setObject(thumb, forKey: remotePath as NSString, cost: estimatedCost)
-            } catch {
-                androidFMLog("thumbnail load failed: \(error.localizedDescription)")
-                // Secondary cleanup: ensure temp file is removed even if defer is skipped
-                do {
-                    try FileManager.default.removeItem(atPath: tmpPath)
-                } catch {
-                    androidFMLog("thumbnail temp cleanup (catch) failed: \(error.localizedDescription)")
+
+            // 用独立 OperationQueue 限流（maxConcurrent=4），不走 ADBService 串行队列
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                queue.addOperation {
+                    defer { continuation.resume() }
+
+                    let process = Process()
+                    process.executableURL = URL(fileURLWithPath: adbPath)
+                    process.arguments = ["-s", deviceId, "pull", remotePath, tmpPath]
+                    process.standardOutput = FileHandle.nullDevice
+                    process.standardError = FileHandle.nullDevice
+                    var environment = ProcessInfo.processInfo.environment
+                    environment["LC_ALL"] = "en_US.UTF-8"
+                    process.environment = environment
+
+                    do {
+                        try process.run()
+                        process.waitUntilExit()
+                        guard process.terminationStatus == 0 else { return }
+                        guard let img = NSImage(contentsOfFile: tmpPath) else { return }
+                        let thumb = img.resized(to: C.thumbnailSize)
+                        let estimatedCost = Int(C.thumbnailSize.width * C.thumbnailSize.height * 4)
+                        self?.cache.setObject(thumb, forKey: remotePath as NSString, cost: estimatedCost)
+                    } catch {
+                        androidFMLog("thumbnail load failed: \(error.localizedDescription)")
+                    }
                 }
             }
         }

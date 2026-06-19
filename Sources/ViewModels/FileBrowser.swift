@@ -17,6 +17,7 @@ final class FileBrowser {
     var selectedFile: FileItem?
     var selectedFiles: Set<FileItem> = []
     var isLoading = false
+    var hasMore = false
     var pathStack: [String] = []
 
     // Set after init by the App
@@ -241,10 +242,11 @@ final class FileBrowser {
 
         do {
             let result = try await Task { [adb, path = currentPath, device] in
-                try adb.listFiles(device: device, path: path)
+                try adb.listFiles(device: device, path: path, maxCount: 500, skip: 0)
             }.value
             androidFMLog("FileBrowser.loadDirectory: got \(result.count) files")
             files = result
+            hasMore = result.count == 500
             _sortDirty = true
             statusMessage = nil
         } catch {
@@ -257,6 +259,27 @@ final class FileBrowser {
             }
             files = []
             _sortDirty = true
+        }
+    }
+
+    // MARK: - 分页加载
+
+    func loadMore(device: String) async {
+        guard hasMore, !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let result = try await Task { [adb, path = currentPath, device] in
+                try adb.listFiles(device: device, path: path, maxCount: 500, skip: files.count)
+            }.value
+            androidFMLog("FileBrowser.loadMore: got \(result.count) files, total=\(files.count + result.count)")
+            files.append(contentsOf: result)
+            hasMore = result.count == 500
+            _sortDirty = true
+        } catch {
+            androidFMLog("FileBrowser.loadMore ERROR: \(error)")
+            setStatus("加载更多失败: \(error.localizedDescription)")
         }
     }
 

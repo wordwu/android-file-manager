@@ -4,14 +4,17 @@ extension ADBService {
     // MARK: - 文件浏览 + 操作 + 传输
     // MARK: - 文件浏览
 
-    func listFiles(device: String, path: String) throws -> [FileItem] {
+    func listFiles(device: String, path: String, maxCount: Int = 500, skip: Int = 0) throws -> [FileItem] {
         let dirPath = path.hasSuffix("/") ? path : "\(path)/"
         var items: [FileItem] = []
 
         // 方案 1: ls -la（一次调用拿全部信息，性能最优）
         let escPath1 = shellEscape(dirPath)
+        let headPipe: String = skip > 0
+            ? " | head -\(skip + maxCount) | tail -\(maxCount)"
+            : " | head -\(maxCount)"
         do {
-            let lsOutput = try run(["-s", device, "shell", "ls -la \"\(escPath1)\""], retryOnTimeout: true)
+            let lsOutput = try run(["-s", device, "shell", "ls -la \"\(escPath1)\"\(headPipe)"], retryOnTimeout: true)
             if !lsOutput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 items = parseLsLaOutput(lsOutput, dirPath: path)
                 if items.isEmpty {

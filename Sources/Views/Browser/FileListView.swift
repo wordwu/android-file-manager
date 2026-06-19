@@ -23,6 +23,20 @@ struct FileListView: View {
         case grid = "图标"
     }
 
+    // 已加载文件总大小（MB）
+    private var totalLoadedSize: String {
+        let bytes = fileBrowser.files.reduce(0) { $0 + $1.size }
+        if bytes < 1024 * 1024 {
+            let kb = Double(bytes) / 1024.0
+            return String(format: "%.1f KB", kb)
+        }
+        let mb = Double(bytes) / (1024.0 * 1024.0)
+        if mb < 1024 {
+            return String(format: "%.1f MB", mb)
+        }
+        return String(format: "%.2f GB", mb / 1024.0)
+    }
+
     var body: some View {
         Group {
             if let device = deviceManager.selectedDevice, device.state == .online {
@@ -106,21 +120,52 @@ struct FileListView: View {
     // MARK: - 列表视图
 
     private var fileList: some View {
-        List(fileBrowser.sortedFiles) { item in
-            FileRowView(
-                item: item,
-                isSelected: isItemActive(item),
-                isMultiSelected: fileBrowser.selectedFiles.contains(item),
-                thumbnail: thumbnailCache.get(item.path)
-            )
-            .contentShape(Rectangle())
-            .modifier(FileTapModifier(item: item, browser: fileBrowser))
-            .onAppear {
-                if let device = deviceManager.selectedDevice {
-                    thumbnailCache.load(for: item, device: device)
+        List {
+            ForEach(fileBrowser.sortedFiles) { item in
+                FileRowView(
+                    item: item,
+                    isSelected: isItemActive(item),
+                    isMultiSelected: fileBrowser.selectedFiles.contains(item),
+                    thumbnail: thumbnailCache.get(item.path)
+                )
+                .contentShape(Rectangle())
+                .modifier(FileTapModifier(item: item, browser: fileBrowser))
+                .onAppear {
+                    if let device = deviceManager.selectedDevice {
+                        thumbnailCache.load(for: item, device: device)
+                    }
                 }
+                .contextMenu { contextMenu(items: [item]) }
             }
-            .contextMenu { contextMenu(items: [item]) }
+            if !fileBrowser.files.isEmpty {
+                HStack {
+                    Spacer()
+                    Text("已加载 \(totalLoadedSize) · \(fileBrowser.files.count) 项")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .padding(.vertical, 4)
+            }
+            if fileBrowser.hasMore {
+                HStack {
+                    Spacer()
+                    Button {
+                        if let device = deviceManager.selectedDevice {
+                            Task { await fileBrowser.loadMore(device: device.id) }
+                        }
+                    } label: {
+                        if fileBrowser.isLoading {
+                            ProgressView().scaleEffect(0.6)
+                        } else {
+                            Label("加载更多…", systemImage: "arrow.down.circle")
+                        }
+                    }
+                    .disabled(fileBrowser.isLoading)
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+            }
         }
         .listStyle(.inset(alternatesRowBackgrounds: true))
         .onDrop(of: [.fileURL], isTargeted: .none) { providers in
@@ -205,6 +250,38 @@ struct FileListView: View {
                         }
                     }
                     .padding(12)
+                    
+                    // 已加载大小
+                    if !fileBrowser.files.isEmpty {
+                        HStack {
+                            Spacer()
+                            Text("已加载 \(totalLoadedSize) · \(fileBrowser.files.count) 项")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                            Spacer()
+                        }
+                        .padding(.bottom, 4)
+                    }
+                    // 加载更多按钮
+                    if fileBrowser.hasMore {
+                        HStack {
+                            Spacer()
+                            Button {
+                                if let device = deviceManager.selectedDevice {
+                                    Task { await fileBrowser.loadMore(device: device.id) }
+                                }
+                            } label: {
+                                if fileBrowser.isLoading {
+                                    ProgressView().scaleEffect(0.6)
+                                } else {
+                                    Label("加载更多…", systemImage: "arrow.down.circle")
+                                }
+                            }
+                            .disabled(fileBrowser.isLoading)
+                            Spacer()
+                        }
+                        .padding(.bottom, 12)
+                    }
                 }
                 .coordinateSpace(name: "iconGrid")
 
