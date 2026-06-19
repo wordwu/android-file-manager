@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>安卓文件小助理 — 使用手册</title>
+<style>
+  @page {
+    size: A4;
+    margin: 25mm 20mm 25mm 20mm;
+    @bottom-center {
+      content: counter(page);
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 10px;
+      color: #999;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, sans-serif;
+    font-size: 12px; line-height: 1.8; color: #222;
+    padding: 10mm; max-width: 170mm; margin: 0 auto;
+  }
+  h1 {
+    font-size: 24px; font-weight: 700; margin: 0 0 24px 0;
+    padding-bottom: 12px; border-bottom: 3px solid #333; color: #111;
+  }
+  h2 {
+    font-size: 16px; font-weight: 700; margin: 28px 0 12px 0;
+    padding: 6px 0; border-bottom: 1px solid #ddd; page-break-after: avoid;
+  }
+  h3 { font-size: 13px; font-weight: 700; margin: 18px 0 8px 0; color: #333; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  strong { font-weight: 700; color: #111; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 11px; page-break-inside: avoid; }
+  th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #f5f5f5; font-weight: 700; }
+  ul, ol { margin: 6px 0 6px 20px; }
+  li { margin: 3px 0; }
+  code {
+    font-family: "SF Mono", "Menlo", "Monaco", monospace;
+    background: #f5f5f5; padding: 2px 5px; border-radius: 3px; font-size: 10px;
+  }
+  pre { background: #f5f5f5; padding: 10px 14px; border-radius: 4px; margin: 8px 0; overflow-x: auto; }
+  pre code { background: none; padding: 0; font-size: 10px; }
+  hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+  blockquote {
+    border-left: 3px solid #aaa; padding: 6px 14px; margin: 12px 0;
+    color: #555; background: #fafafa;
+  }
+  @media print {
+    body { padding: 0; }
+    h2 { page-break-before: auto; }
+    h2:first-of-type { page-break-before: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>安卓文件小助理 — 使用手册</h1>
+
+<h2>1. 软件介绍</h2>
+
+<p>安卓文件小助理是一款 macOS 上的 Android 设备文件管理工具，通过 ADB（Android Debug Bridge）连接你的手机，实现文件浏览、复制粘贴、删除重命名、应用管理、APK 安装等功能。</p>
+
+<p>无需 root，无需在手机上装任何 App，只需要一根数据线（或无线调试），就能像操作 Mac 本地文件一样操作手机文件。</p>
+
+<p><strong>运行环境</strong>：macOS 15.0（Sequoia）及以上，Apple Silicon（M 系列芯片）</p>
+
+<h2>2. 软件用法</h2>
+
+<h3>2.1 主界面概览</h3>
+
+<p>打开软件后，左侧是设备列表栏，右侧是文件浏览区。顶部有两排工具栏：</p>
+
+<p><strong>第一排工具栏</strong>：后退、向上、主页、刷新、复制、剪切、粘贴、删除、下载到 Mac、安装 APK、传输任务、侧边栏</p>
+
+<p><strong>第二排工具栏</strong>：搜索框（实时搜索，输入即触发）、应用管理按钮、列表/图标视图切换、排序方式、文件类型过滤、批量重命名</p>
+
+<h3>2.2 文件浏览</h3>
+
+<ul>
+<li><strong>双击文件夹</strong>进入，<strong>双击文件</strong>预览</li>
+<li><strong>单击选中</strong>单个文件，<strong>Cmd+点击</strong>多选</li>
+<li><strong>右键菜单</strong>提供复制、删除、下载等快捷操作</li>
+<li><strong>拖拽 Mac 文件到窗口</strong>可上传到当前手机目录</li>
+</ul>
+
+<h3>2.3 文件操作</h3>
+
+<table>
+<tr><th>操作</th><th>说明</th></tr>
+<tr><td>复制 (Cmd+C)</td><td>将选中文件放入剪贴板</td></tr>
+<tr><td>剪切 (Cmd+X)</td><td>将选中文件放入剪贴板（移动到新位置）</td></tr>
+<tr><td>粘贴 (Cmd+V)</td><td>将剪贴板文件粘贴到当前目录</td></tr>
+<tr><td>删除 (Delete)</td><td>删除选中的文件或文件夹</td></tr>
+<tr><td>重命名</td><td>点击"重命名"按钮，支持四种批量模式</td></tr>
+<tr><td>下载</td><td>将选中文件从手机复制到 Mac 桌面</td></tr>
+<tr><td>拖拽上传</td><td>将 Mac 文件拖到文件列表即可上传</td></tr>
+</table>
+
+<p><strong>批量重命名四种模式：</strong></p>
+
+<ol>
+<li><strong>序号重命名</strong>：将文件按顺序重命名为 <code>前缀_001</code>、<code>前缀_002</code>……，支持自定义前缀和起始编号</li>
+<li><strong>查找替换</strong>：将文件名中的指定文字替换为其他文字</li>
+<li><strong>添加前后缀</strong>：在文件名前或文件名后（扩展名前）添加文字</li>
+<li><strong>正则替换</strong>：用正则表达式匹配并替换文件名</li>
+</ol>
+
+<h3>2.4 搜索文件</h3>
+
+<p>在搜索框输入关键词，自动在当前目录和<strong>所有子文件夹</strong>中递归搜索。搜索结果按文件夹优先排列。按 Esc 或点击搜索框右侧的叉号清除搜索。</p>
+
+<h3>2.5 排序与过滤</h3>
+
+<ul>
+<li><strong>排序</strong>：按名称、大小、修改时间、类型排序</li>
+<li><strong>过滤</strong>：显示全部 / 仅文件夹 / 图片 / 视频 / 音频 / 文档 / APK 安装包</li>
+</ul>
+
+<h3>2.6 应用管理</h3>
+
+<p>点击工具栏的「应用管理」按钮（九宫格图标）：</p>
+
+<ul>
+<li>查看手机上所有已安装的应用</li>
+<li>按名称搜索应用</li>
+<li>切换显示/隐藏系统应用</li>
+<li><strong>右键应用</strong>可卸载、查看详情、提取 APK</li>
+</ul>
+
+<h3>2.7 安装 APK</h3>
+
+<p>两种方式：</p>
+<ol>
+<li>在文件管理中找到 APK 文件，选中后点击「安装 APK」按钮</li>
+<li>将 Mac 上的 APK 文件<strong>拖拽到应用管理窗口</strong></li>
+</ol>
+
+<p>安装过程会显示进度和结果。如果安装失败，会显示具体原因（如版本冲突、空间不足、签名不一致等）。</p>
+
+<h3>2.8 传输任务</h3>
+
+<p>点击第一排工具栏最右侧的「传输任务」按钮，查看当前正在进行的文件传输进度，包括上传到手机和下载到 Mac 的任务。支持取消进行中的任务。</p>
+
+<h3>2.9 书签</h3>
+
+<p>右键文件列表中的文件夹 →「添加书签」，之后在路径栏旁边可以快速跳转到已收藏的目录。右键书签可删除。</p>
+
+<h3>2.10 屏幕镜像</h3>
+
+<p>点击工具栏的「屏幕镜像」按钮，会弹出独立的手机屏幕镜像窗口：</p>
+
+<ul>
+<li><strong>实时画面</strong>：显示手机屏幕内容，延迟约 40-60ms</li>
+<li><strong>鼠标操控</strong>：鼠标点击 = 手指触控，鼠标滑动 = 手势操作</li>
+<li><strong>键盘输入</strong>：先点一下手机画面中的输入框，再用电脑键盘打字</li>
+<li><strong>右键菜单</strong>：弹出 Home / Back / Recent Apps 快捷操作</li>
+</ul>
+
+<p><strong>键盘输入前提</strong>：手机需开启「开发者选项 → USB 调试（安全设置）」。小米/HyperOS 用户在开发者选项里找到这项开关打开，拔插 USB 重新连接即可。</p>
+
+<table>
+<tr><th>快捷键</th><th>操作</th></tr>
+<tr><td><code>Option+H</code></td><td>回主页</td></tr>
+<tr><td><code>Option+B</code></td><td>返回</td></tr>
+<tr><td><code>Option+S</code></td><td>最近应用</td></tr>
+<tr><td><code>Option+N</code></td><td>下拉通知</td></tr>
+<tr><td><code>Option+P</code></td><td>锁屏/亮屏</td></tr>
+<tr><td><code>F11</code></td><td>全屏切换</td></tr>
+<tr><td><code>Option+Q</code></td><td>退出镜像</td></tr>
+</table>
+
+<h2>3. 打开时可能出现的问题</h2>
+
+<h3>3.1 「安卓文件小助理已损坏，无法打开」</h3>
+
+<p><strong>原因</strong>：macOS Gatekeeper 阻止了未签名的应用。</p>
+
+<p><strong>解决</strong>：</p>
+<ol>
+<li>打开「系统设置」→「隐私与安全性」</li>
+<li>往下滚动，找到「已阻止使用 XXX，因为来自身份不明的开发者」</li>
+<li>点击「仍要打开」</li>
+<li>如果上述步骤不行，打开「终端」，执行：</li>
+</ol>
+
+<pre><code>xattr -cr /Applications/安卓文件小助理.app</code></pre>
+
+<p>或（如果放在桌面）：</p>
+
+<pre><code>xattr -cr ~/Desktop/安卓文件小助理/安卓文件小助理.app</code></pre>
+
+<h3>3.2 提示「未找到 adb」</h3>
+
+<p><strong>原因</strong>：adb 工具未能正确内嵌到 App 中。</p>
+
+<p><strong>解决</strong>：重新下载完整版的 App，确保 App 体积在 14MB 左右（内含 adb 二进制约 19MB）。不要使用轻量版或通过其他渠道下载。</p>
+
+<h3>3.3 软件打开了但看不到设备</h3>
+
+<p><strong>原因</strong>：手机上的 USB 调试没有开启，或者未授权该电脑。</p>
+
+<p><strong>解决</strong>：</p>
+<ol>
+<li>确认手机已通过数据线连接到 Mac</li>
+<li>手机上应该弹出「允许 USB 调试吗？」对话框，勾选「始终允许」并点击确定</li>
+<li>如果没弹出，关闭 USB 调试再重新打开，然后重新插拔数据线</li>
+<li>检查数据线是否支持数据传输（不是仅充电线）</li>
+</ol>
+
+<h3>3.4 能连接但提示「目录无法读取 / Permission denied」</h3>
+
+<p><strong>原因</strong>：Android 11+ 的 scoped storage 限制，部分系统目录无法通过普通 ADB 访问。</p>
+
+<p><strong>解决</strong>：使用 <code>/sdcard/</code> 下的目录（Download、Documents、DCIM 等），这是普通用户可以完全读写的区域。<code>/storage/emulated/0/</code> 等同于 <code>/sdcard/</code>。</p>
+
+<h3>3.5 无线调试无法连接</h3>
+
+<p><strong>确认以下条件</strong>：</p>
+<ul>
+<li>手机和 Mac 连接的是<strong>同一个 WiFi</strong>（同一个路由器）</li>
+<li>手机已先通过 USB 线开启一次无线调试（点击侧边栏的 WiFi 图标）</li>
+<li>手机 Android 版本 ≥ 11</li>
+</ul>
+
+<p><strong>如果仍然连接不上</strong>：</p>
+<ul>
+<li>在手机上打开「开发者选项」→「无线调试」，看端口号是多少</li>
+<li>手动在 Mac 终端执行：<code>adb connect 手机IP:端口号</code></li>
+<li>如果手动能连上但 App 连不上，可能是防火墙/路由器隔离了设备间通信</li>
+</ul>
+
+<h3>3.6 OPPO / 一加 / realme 设备连接后不显示型号</h3>
+
+<p><strong>原因</strong>：这些品牌的固件对型号信息的解析有特殊规则。</p>
+
+<p><strong>解决</strong>：无需处理，不影响功能使用。App 会自动尝试多种方式获取设备名称，显示为「Unknown Device」时不影响文件操作。</p>
+
+<h2>4. 各品牌手机 USB 调试设置指南</h2>
+
+<h3>4.1 小米 / Redmi（MIUI / HyperOS）</h3>
+
+<p><strong>开启开发者选项</strong>：</p>
+<ol>
+<li>进入「设置」→「我的设备」→「全部参数与信息」</li>
+<li><strong>连续点击「MIUI 版本」（或 HyperOS 版本）7 次</strong></li>
+<li>提示「您已处于开发者模式」</li>
+</ol>
+
+<p><strong>开启 USB 调试</strong>：</p>
+<ol>
+<li>「设置」→「更多设置」→「开发者选项」</li>
+<li>打开「USB 调试」</li>
+<li>打开「USB 安装」（允许通过 USB 安装应用）</li>
+<li><strong>关键</strong>：打开「USB 调试（安全设置）」— 部分小米机型必须开启此项才能正常工作</li>
+<li>关闭「MIUI 优化」（可选，若遇到问题建议关闭）</li>
+</ol>
+
+<p><strong>注意事项</strong>：MIUI/HyperOS 的 USB 调试有 10 分钟超时限制，超时需重新授权。</p>
+
+<h3>4.2 华为 / 荣耀（HarmonyOS / EMUI / MagicOS）</h3>
+
+<p><strong>开启开发者选项</strong>：</p>
+<ol>
+<li>「设置」→「关于手机」</li>
+<li><strong>连续点击「版本号」7 次</strong></li>
+</ol>
+
+<p><strong>开启 USB 调试</strong>：</p>
+<ol>
+<li>「设置」→「系统和更新」→「开发人员选项」</li>
+<li>打开「USB 调试」</li>
+<li>打开「仅充电模式下允许 ADB 调试」</li>
+</ol>
+
+<p><strong>注意事项</strong>：华为默认 USB 连接模式为「仅充电」，务必打开上方的第 3 项，否则无法连接。连接后手机弹出 RSA 密钥指纹对话框，勾选「始终允许」并确认。</p>
+
+<h3>4.3 OPPO / 一加 / realme（ColorOS / OxygenOS / realmeUI）</h3>
+
+<p><strong>开启开发者选项</strong>：</p>
+<ol>
+<li>「设置」→「关于本机」→「版本信息」</li>
+<li><strong>连续点击「版本号」7 次</strong></li>
+<li>输入锁屏密码验证</li>
+</ol>
+
+<p><strong>开启 USB 调试</strong>：</p>
+<ol>
+<li>「设置」→「其他设置」→「开发者选项」</li>
+<li>打开「USB 调试」</li>
+</ol>
+
+<p><strong>注意事项</strong>：OPPO 设备连接后会弹出 10 位数字验证码，必须在手机上点击确认。不要关闭这个弹窗，否则无法连接。</p>
+
+<h3>4.4 vivo / iQOO（OriginOS / Funtouch OS）</h3>
+
+<p><strong>开启开发者选项</strong>：</p>
+<ol>
+<li>「设置」→「系统管理」→「关于手机」→「版本信息」</li>
+<li><strong>连续点击「软件版本号」7 次</strong></li>
+</ol>
+
+<p><strong>开启 USB 调试</strong>：</p>
+<ol>
+<li>「设置」→「系统管理」→「开发者选项」</li>
+<li>打开「USB 调试」</li>
+</ol>
+
+<p><strong>注意事项</strong>：vivo 连接后手机顶部会弹出「USB 调试授权」通知，需要下拉通知栏点击确认。</p>
+
+<h3>4.5 三星（One UI）</h3>
+
+<p><strong>开启开发者选项</strong>：</p>
+<ol>
+<li>「设置」→「关于手机」→「软件信息」</li>
+<li><strong>连续点击「版本号」7 次</strong></li>
+</ol>
+
+<p><strong>开启 USB 调试</strong>：</p>
+<ol>
+<li>「设置」→「开发者选项」</li>
+<li>打开「USB 调试」</li>
+<li>弹出 RSA 密钥对话框时，勾选「始终允许使用这台计算机进行调试」</li>
+</ol>
+
+<h3>4.6 Google Pixel / 原生 Android</h3>
+
+<p><strong>开启开发者选项</strong>：</p>
+<ol>
+<li>「设置」→「关于手机」</li>
+<li><strong>连续点击「版本号」7 次</strong></li>
+</ol>
+
+<p><strong>开启 USB 调试</strong>：</p>
+<ol>
+<li>「设置」→「系统」→「开发者选项」</li>
+<li>打开「USB 调试」</li>
+</ol>
+
+<p>Pixel 系列通常是最省心的，插上即可连接。</p>
+
+<h3>4.7 其他品牌（摩托罗拉、中兴、努比亚、联想等）</h3>
+
+<p>步骤大同小异：在「关于手机」里连点 7 次版本号 → 开发者选项里开启 USB 调试。</p>
+
+<p><strong>通用检查清单</strong>：</p>
+<ul>
+<li>开发者选项是否处于开启状态（顶部开关是蓝色/绿色）</li>
+<li>USB 调试是否勾选</li>
+<li>数据线是否支持数据传输（换一根线试试）</li>
+<li>连接后手机屏幕是否有弹窗、通知要求确认</li>
+</ul>
+
+<h2>5. 无线调试设置</h2>
+
+<p>无线调试可以让你摆脱数据线，通过 WiFi 连接手机。</p>
+
+<p><strong>前提条件</strong>：</p>
+<ul>
+<li>手机 Android 11 及以上</li>
+<li>手机和 Mac 连在同一个 WiFi 网络</li>
+<li>第一次使用需要先用 USB 线连接一次</li>
+</ul>
+
+<p><strong>操作步骤</strong>：</p>
+<ol>
+<li>先用 USB 连接手机，确保 USB 调试已授权</li>
+<li>在软件左侧设备列表中，点击设备旁边的 <strong>WiFi 图标</strong></li>
+<li>等待几秒，手机会自动切换到无线模式</li>
+<li>拔掉 USB 线，设备应仍然在线</li>
+<li>如果显示已断开，点击设备右键 →「连接无线设备」手动输入 IP 和端口</li>
+</ol>
+
+<p><strong>注意事项</strong>：</p>
+<ul>
+<li>部分路由器开启了 AP 隔离（设备间不能互相通信），无线调试会失败</li>
+<li>手机息屏后 WiFi 可能断开，导致 ADB 掉线</li>
+<li>建议在「开发者选项」中开启「充电时保持唤醒」</li>
+</ul>
+
+<h2>6. 所有可用功能清单</h2>
+
+<table>
+<tr><th>功能</th><th>说明</th></tr>
+<tr><td>文件浏览</td><td>浏览 Android 设备所有可访问目录</td></tr>
+<tr><td>多选</td><td>Cmd+点击进行多选操作</td></tr>
+<tr><td>复制/剪切/粘贴</td><td>在手机内部或手机与 Mac 之间操作</td></tr>
+<tr><td>拖拽上传</td><td>将 Mac 文件拖入窗口上传到手机</td></tr>
+<tr><td>下载到 Mac</td><td>手机文件下载到 Mac 桌面</td></tr>
+<tr><td>删除</td><td>删除文件或文件夹</td></tr>
+<tr><td>批量重命名</td><td>序号、查找替换、前后缀、正则四种模式</td></tr>
+<tr><td>搜索文件</td><td>当前目录及所有子文件夹递归搜索</td></tr>
+<tr><td>排序</td><td>按名称、大小、时间、类型</td></tr>
+<tr><td>过滤</td><td>全部、文件夹、图片、视频、音频、文档、APK</td></tr>
+<tr><td>书签</td><td>收藏常用目录，快速跳转</td></tr>
+<tr><td>应用管理</td><td>查看、搜索、卸载应用</td></tr>
+<tr><td>提取 APK</td><td>从手机上提取已安装应用的 APK</td></tr>
+<tr><td>安装 APK</td><td>安装 APK 到手机，拖拽或文件选中均可</td></tr>
+<tr><td>文件预览</td><td>图片预览和 APK 信息查看</td></tr>
+<tr><td>无线调试</td><td>WiFi 连接，摆脱数据线</td></tr>
+<tr><td>传输管理</td><td>查看和管理传输进度</td></tr>
+<tr><td>屏幕镜像</td><td>实时手机画面，鼠标/键盘操控</td></tr>
+<tr><td>批量操作</td><td>同时处理多个文件</td></tr>
+</table>
+
+<h2>7. 快捷键</h2>
+
+<h3>App 全局快捷键</h3>
+
+<table>
+<tr><th>快捷键</th><th>操作</th></tr>
+<tr><td>Cmd+C</td><td>复制</td></tr>
+<tr><td>Cmd+X</td><td>剪切</td></tr>
+<tr><td>Cmd+V</td><td>粘贴</td></tr>
+<tr><td>Delete</td><td>删除</td></tr>
+<tr><td>Cmd+点击</td><td>多选</td></tr>
+<tr><td>Esc</td><td>清除搜索</td></tr>
+</table>
+
+<h3>屏幕镜像窗口快捷键</h3>
+
+<table>
+<tr><th>快捷键</th><th>操作</th></tr>
+<tr><td><code>Option+H</code></td><td>回主页</td></tr>
+<tr><td><code>Option+B</code></td><td>返回</td></tr>
+<tr><td><code>Option+S</code></td><td>最近应用</td></tr>
+<tr><td><code>Option+N</code></td><td>下拉通知</td></tr>
+<tr><td><code>Option+P</code></td><td>锁屏/亮屏</td></tr>
+<tr><td><code>F11</code></td><td>全屏切换</td></tr>
+<tr><td><code>Option+Q</code></td><td>退出镜像</td></tr>
+<tr><td><code>鼠标右键</code></td><td>弹出 Home/Back/Recent 菜单</td></tr>
+</table>
+
+<h2>8. 常见问题速查</h2>
+
+<p><strong>Q: 应用提示「设备离线」但手机明明连着？</strong></p>
+
+<p>A: 检查手机上的 USB 调试授权是否过期。拔掉数据线，关闭 USB 调试再重新打开，重新连接，注意看手机屏幕上的授权弹窗。</p>
+
+<p><strong>Q: 能连上但不能读写某些目录？</strong></p>
+
+<p>A: Android 11+ 的权限限制。请使用 <code>/sdcard/</code> 下的目录，不要尝试访问 <code>/data/</code> 等系统目录。</p>
+
+<p><strong>Q: 传输大文件很慢？</strong></p>
+
+<p>A: USB 2.0 理论速度约 30MB/s，WiFi 更慢。大文件建议使用 USB 有线连接传输。具体速度取决于数据线和手机 USB 接口版本。</p>
+
+<p><strong>Q: 无线调试总是掉线？</strong></p>
+
+<p>A: 检查 WiFi 是否开启了 AP 隔离（客户端隔离），或者手机是否在 WiFi 信号较弱的位置。部分路由器在设备空闲时会断开连接。</p>
+
+<hr>
+
+<blockquote>
+<p><strong>最后</strong>：如果以上方法都无法解决你的问题，请截图错误信息，连同你的手机品牌和型号发给开发者。不要用「不能用了」「不好使」这种反馈——有图有真相，才能秒定位。</p>
+</blockquote>
+
+</body>
+</html>

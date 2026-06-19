@@ -1,0 +1,31 @@
+# 构建产物
+build/
+.build/
+*.app
+*.dmg
+
+# Swift
+DerivedData/
+*.xcuserdata
+Package.resolved
+.swiftpm/
+
+# macOS
+.DS_Store
+*.swp
+*.swo
+
+# IDE
+.idea/
+.vscode/
+
+# 二进制依赖（太大，从 Release 下载）
+scrcpy
+scrcpy-server
+adb
+aapt
+
+# 临时文件
+*.tar.gz
+*.zip
+/tmp/
