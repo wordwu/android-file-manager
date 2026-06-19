@@ -13,11 +13,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show Swift version
-        run: swift --version
+      - name: Environment
+        run: |
+          swift --version
+          xcodebuild -version
+          xcrun --show-sdk-path
+          sw_vers
 
-      - name: Build (debug)
-        run: swift build
+      - name: Build
+        run: swift build 2>&1 | tee build.log
+
+      - name: Build log
+        if: failure()
+        run: cat build.log
 
       - name: Test
-        run: swift test
+        run: swift test 2>&1 | tee test.log
+
+      - name: Test log
+        if: failure()
+        run: cat test.log
