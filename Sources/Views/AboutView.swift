@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var showCoffeeSheet = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -51,15 +52,21 @@ struct AboutView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
 
-            Text("专栏：老派 IT 生存手册")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-
-            HStack(spacing: 16) {
-                Link("GitHub", destination: URL(string: "https://github.com/AltairZheng")!)
-                    .font(.caption)
+            Button {
+                showCoffeeSheet = true
+            } label: {
+                HStack {
+                    Text("☕️ 请作者喝杯咖啡")
+                        .font(.caption)
+                }
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
             }
-            .padding(.top, 4)
+            .buttonStyle(.plain)
+            .foregroundColor(.accentColor)
+
+            Link("GitHub", destination: URL(string: "https://github.com/wordwu/android-file-manager")!)
+                .font(.caption)
 
             Button("关闭") {
                 dismiss()
@@ -69,8 +76,67 @@ struct AboutView: View {
         }
         .padding(24)
         .frame(width: 340)
+        .sheet(isPresented: $showCoffeeSheet) {
+            CoffeeView()
+        }
     }
 }
+
+// MARK: - 咖啡赞赏码
+
+private struct CoffeeView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("☕️ 感谢支持")
+                .font(.headline)
+
+            HStack(alignment: .top, spacing: 24) {
+                // 微信赞赏码
+                VStack(spacing: 6) {
+                    if let img = loadImage(named: "wechat_qr.jpg") {
+                        Image(nsImage: img)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 160, height: 160)
+                    }
+                    Text("微信赞赏")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                // 支付宝收款码
+                VStack(spacing: 6) {
+                    if let img = loadImage(named: "alipay_qr.jpg") {
+                        Image(nsImage: img)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 160, height: 160)
+                    }
+                    Text("支付宝")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Button("关闭") {
+                dismiss()
+            }
+            .keyboardShortcut(.return, modifiers: [])
+        }
+        .padding(24)
+        .frame(width: 400, height: 280)
+    }
+
+    private func loadImage(named name: String) -> NSImage? {
+        guard let path = Bundle.main.path(forResource: name
+            .replacingOccurrences(of: ".jpg", with: ""), ofType: "jpg") else { return nil }
+        return NSImage(contentsOfFile: path)
+    }
+}
+
+// MARK: - 功能行
 
 private struct AboutRow: View {
     let icon: String

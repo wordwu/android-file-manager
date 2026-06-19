@@ -121,6 +121,16 @@ elif [ -f "$HOME/Desktop/AppIcon.icns" ]; then
     echo "✅ AppIcon 已复制（来自桌面）"
 fi
 
+# 4.5 复制赞赏码图片到 Resources
+if [ -f "$BUILD_DIR/Resources/wechat_qr.jpg" ]; then
+    cp "$BUILD_DIR/Resources/wechat_qr.jpg" "$APP_BUNDLE/Contents/Resources/"
+    echo "✅ 微信赞赏码已复制"
+fi
+if [ -f "$BUILD_DIR/Resources/alipay_qr.jpg" ]; then
+    cp "$BUILD_DIR/Resources/alipay_qr.jpg" "$APP_BUNDLE/Contents/Resources/"
+    echo "✅ 支付宝收款码已复制"
+fi
+
 # 5. 代码签名（可选，开发环境跳过不影响运行）
 if [ -n "$CODE_SIGN_IDENTITY" ]; then
     echo "🔐 代码签名..."
