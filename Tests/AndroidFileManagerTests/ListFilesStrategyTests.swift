@@ -17,17 +17,16 @@ final class ListFilesStrategyTests: XCTestCase {
         args.joined(separator: " ").contains(substr)
     }
 
-    // MARK: - 策略 1: ls -la 成功
+    // MARK: - 策略 1: ls -1aF 成功
 
-    func testStrategy1_lsLa_succeeds() async throws {
+    func testStrategy1_ls1aF_succeeds() async throws {
         let lsOutput = """
-        total 8
-        drwx------ 2 root root 4096 Jun 10 14:30 Documents
-        -rwx------ 1 root root 1024 Jun 10 14:31 photo.jpg
+        Documents/
+        photo.jpg
         """
 
         ADBService.shared.mockShell = { [self] args, _ in
-            if hasArg(args, "ls") && hasArg(args, "-la") {
+            if hasArg(args, "ls") && hasArg(args, "-1aF") && hasArg(args, "head") {
                 return lsOutput
             }
             throw ADBError.commandFailed(exitCode: 1, stderr: "unexpected")
@@ -41,7 +40,7 @@ final class ListFilesStrategyTests: XCTestCase {
         XCTAssertEqual(items[1].name, "photo.jpg")
     }
 
-    // MARK: - 策略 2: ls -la 失败 → find+stat compact 格式成功
+    // MARK: - 策略 2: ls -1aF 失败 → find+stat compact 格式成功
 
     func testStrategy2_fallbackToFindStat() async throws {
         let statOutput = """
@@ -50,7 +49,7 @@ final class ListFilesStrategyTests: XCTestCase {
         """
 
         ADBService.shared.mockShell = { [self] args, _ in
-            if hasArg(args, "ls") && hasArg(args, "-la") {
+            if hasArg(args, "ls") && hasArg(args, "-1aF") && hasArg(args, "head") {
                 throw ADBError.commandFailed(exitCode: 1, stderr: "permission denied")
             }
             if hasArg(args, "find") {
@@ -69,7 +68,7 @@ final class ListFilesStrategyTests: XCTestCase {
         XCTAssertEqual(items[1].size, 512)
     }
 
-    // MARK: - 策略 3: ls -1aF 兜底
+    // MARK: - 策略 3: ls -1aF 无 head 兜底
 
     func testStrategy3_fallbackToLs1aF() async throws {
         let ls1aFOutput = """
@@ -80,8 +79,8 @@ final class ListFilesStrategyTests: XCTestCase {
         """
 
         ADBService.shared.mockShell = { [self] args, _ in
-            if hasArg(args, "ls") && hasArg(args, "-la") {
-                throw ADBError.commandFailed(exitCode: 1, stderr: "")
+            if hasArg(args, "-1aF") && hasArg(args, "head") {
+                throw ADBError.commandFailed(exitCode: 1, stderr: "head not supported")
             }
             if hasArg(args, "find") {
                 throw ADBError.commandFailed(exitCode: 2, stderr: "")
@@ -110,7 +109,7 @@ final class ListFilesStrategyTests: XCTestCase {
         """
 
         ADBService.shared.mockShell = { [self] args, _ in
-            if hasArg(args, "ls") && hasArg(args, "-la") {
+            if hasArg(args, "-1aF") && hasArg(args, "head") {
                 throw ADBError.commandFailed(exitCode: 1, stderr: "")
             }
             if hasArg(args, "find") {
@@ -119,7 +118,7 @@ final class ListFilesStrategyTests: XCTestCase {
             if hasArg(args, "-1aF") {
                 throw ADBError.commandFailed(exitCode: 1, stderr: "no -F flag")
             }
-            if hasArg(args, "-1a") {
+            if hasArg(args, "-1a") || hasArg(args, "test -d") {
                 return ls1aOutput
             }
             throw ADBError.commandFailed(exitCode: 1, stderr: "unexpected")
@@ -138,14 +137,13 @@ final class ListFilesStrategyTests: XCTestCase {
 
     func testSortedOutput_foldersFirst() async throws {
         let lsOutput = """
-        total 16
-        -rwx------ 1 root root  512 Jun 10 14:30 z_photo.jpg
-        drwx------ 2 root root 4096 Jun 10 14:30 a_folder
-        -rwx------ 1 root root 1024 Jun 10 14:31 b_file.txt
+        a_folder/
+        z_photo.jpg*
+        b_file.txt
         """
 
         ADBService.shared.mockShell = { [self] args, _ in
-            if hasArg(args, "ls") && hasArg(args, "-la") {
+            if hasArg(args, "ls") && hasArg(args, "-1aF") {
                 return lsOutput
             }
             throw ADBError.commandFailed(exitCode: 1, stderr: "")
@@ -157,6 +155,7 @@ final class ListFilesStrategyTests: XCTestCase {
         XCTAssertEqual(items[0].name, "a_folder")
         XCTAssertFalse(items[1].isDirectory)
         XCTAssertFalse(items[2].isDirectory)
+        // sorted: folders first, then by name
         XCTAssert(items[1].name < items[2].name)
     }
 }

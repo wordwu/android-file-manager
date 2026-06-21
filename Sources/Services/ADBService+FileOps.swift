@@ -8,27 +8,27 @@ extension ADBService {
         let dirPath = path.hasSuffix("/") ? path : "\(path)/"
         var items: [FileItem] = []
 
-        // 方案 1: ls -la（一次调用拿全部信息，性能最优）
+        // 方案 1: ls -1aF（只列文件名不做 stat，大文件夹秒出不死锁）
         let escPath1 = shellEscape(dirPath)
-        let overfetch = maxCount + 50  // 余量防止 ls 输出中的 ./ ../ 子目录占行
+        let overfetch = maxCount + 50  // 余量防止输出中的 ./ ../ 子目录占行
         let headPipe: String = skip > 0
             ? " | head -\(skip + overfetch) | tail -\(overfetch)"
             : " | head -\(overfetch)"
         do {
-            let lsOutput = try run(["-s", device, "shell", "ls -la \"\(escPath1)\"\(headPipe)"], retryOnTimeout: true)
+            let lsOutput = try run(["-s", device, "shell", "ls -1aF \"\(escPath1)\"\(headPipe)"], timeout: 10)
             if !lsOutput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                items = parseLsLaOutput(lsOutput, dirPath: path)
+                items = parseLs1aOutput(lsOutput, dirPath: path, usesF: true)
                 if items.isEmpty {
-                    androidFMLog("listFiles: ls -la 解析出 0 条, output=\(lsOutput.prefix(200))")
+                    androidFMLog("listFiles: ls -1aF 解析出 0 条, output=\(lsOutput.prefix(200))")
                 }
             }
         } catch {
-            androidFMLog("listFiles: ls -la 失败: \(error)")
+            androidFMLog("listFiles: ls -1aF 失败: \(error)")
         }
 
         // 方案 2: find + stat 回退（兼容老设备的 toybox/busybox）
         if items.isEmpty {
-            androidFMLog("listFiles: ls -la 未返回数据，回退 find + stat, path=\(dirPath)")
+            androidFMLog("listFiles: ls -1aF 未返回数据，回退 find + stat, path=\(dirPath)")
             let escapedDir = shellEscape(dirPath)
             let cmd = "find \"\(escapedDir)\" -maxdepth 1 -mindepth 1 2>/dev/null | while read f; do s=$(stat -c \"%s|%Y\" \"$f\" 2>/dev/null || echo \"0|0\"); [ -d \"$f\" ] && echo \"d|$s|$f\" || echo \"f|$s|$f\"; done"
             do {
