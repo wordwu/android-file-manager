@@ -18,6 +18,7 @@ final class FileBrowser {
     var selectedFiles: Set<FileItem> = []
     var isLoading = false
     var hasMore = false
+    private let pageSize = 2000
     var pathStack: [String] = []
 
     // Set after init by the App
@@ -242,7 +243,7 @@ final class FileBrowser {
 
         do {
             let result = try await Task { [adb, path = currentPath, device] in
-                try adb.listFiles(device: device, path: path, maxCount: 500, skip: 0)
+                try adb.listFiles(device: device, path: path, maxCount: pageSize, skip: 0)
             }.value
             androidFMLog("FileBrowser.loadDirectory: got \(result.count) files")
             files = result
@@ -271,7 +272,7 @@ final class FileBrowser {
 
         do {
             let result = try await Task { [adb, path = currentPath, device] in
-                try adb.listFiles(device: device, path: path, maxCount: 500, skip: files.count)
+                try adb.listFiles(device: device, path: path, maxCount: pageSize, skip: files.count)
             }.value
             androidFMLog("FileBrowser.loadMore: got \(result.count) files, total=\(files.count + result.count)")
             files.append(contentsOf: result)
