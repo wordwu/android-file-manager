@@ -247,7 +247,7 @@ final class FileBrowser {
             }.value
             androidFMLog("FileBrowser.loadDirectory: got \(result.count) files")
             files = result
-            hasMore = result.count == pageSize
+            hasMore = result.count >= pageSize
             _sortDirty = true
             statusMessage = nil
         } catch {
@@ -266,7 +266,7 @@ final class FileBrowser {
     // MARK: - 分页加载
 
     func loadMore(device: String) async {
-        guard hasMore, !isLoading else { return }
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 
@@ -276,7 +276,7 @@ final class FileBrowser {
             }.value
             androidFMLog("FileBrowser.loadMore: got \(result.count) files, total=\(files.count + result.count)")
             files.append(contentsOf: result)
-            hasMore = result.count == pageSize
+            hasMore = result.count > 0  // >= pageSize 保守起见用 >0
             _sortDirty = true
         } catch {
             androidFMLog("FileBrowser.loadMore ERROR: \(error)")
