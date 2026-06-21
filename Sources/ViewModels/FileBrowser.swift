@@ -274,9 +274,12 @@ final class FileBrowser {
             let result = try await Task { [adb, path = currentPath, device] in
                 try adb.listFiles(device: device, path: path, maxCount: pageSize, skip: files.count)
             }.value
-            androidFMLog("FileBrowser.loadMore: got \(result.count) files, total=\(files.count + result.count)")
-            files.append(contentsOf: result)
-            hasMore = result.count > 0  // >= pageSize 保守起见用 >0
+            androidFMLog("FileBrowser.loadMore: got \(result.count) files, total=\(files.count)")
+            let existingPaths = Set(files.map(\.path))
+            let newItems = result.filter { !existingPaths.contains($0.path) }
+            files.append(contentsOf: newItems)
+            hasMore = !newItems.isEmpty
+            androidFMLog("FileBrowser.loadMore: new=\(newItems.count), hasMore=\(hasMore)")
             _sortDirty = true
         } catch {
             androidFMLog("FileBrowser.loadMore ERROR: \(error)")
