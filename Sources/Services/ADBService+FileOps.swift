@@ -10,9 +10,10 @@ extension ADBService {
 
         // 方案 1: ls -la（一次调用拿全部信息，性能最优）
         let escPath1 = shellEscape(dirPath)
+        let overfetch = maxCount + 50  // 余量防止 ls 输出中的 ./ ../ 子目录占行
         let headPipe: String = skip > 0
-            ? " | head -\(skip + maxCount) | tail -\(maxCount)"
-            : " | head -\(maxCount)"
+            ? " | head -\(skip + overfetch) | tail -\(overfetch)"
+            : " | head -\(overfetch)"
         do {
             let lsOutput = try run(["-s", device, "shell", "ls -la \"\(escPath1)\"\(headPipe)"], retryOnTimeout: true)
             if !lsOutput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -68,6 +69,9 @@ extension ADBService {
             }
         }
 
+        if items.count > maxCount {
+            items = Array(items.prefix(maxCount))
+        }
         androidFMLog("listFiles: \(items.count) items from \(path)")
         return items.sorted { a, b in
             if a.isDirectory != b.isDirectory { return a.isDirectory }
