@@ -255,17 +255,7 @@ final class FileBrowser {
             Task.detached { [weak self, adb, device] in
                 await self?.refreshMetadata(adb: adb, device: device)
             }
-            // 自动继续加载剩余文件（不用手动点"加载更多"）
-            if hasMore {
-                autoLoadTask?.cancel()
-                autoLoadTask = Task.detached { [weak self] in
-                    guard let self else { return }
-                    while await MainActor.run(body: { self.hasMore && !self.isLoading }) {
-                        await self.loadMore(device: device)
-                        try? await Task.sleep(for: .milliseconds(200))
-                    }
-                }
-            }
+
         } catch {
             androidFMLog("FileBrowser.loadDirectory ERROR: \(error)")
             let errStr = error.localizedDescription
@@ -274,7 +264,6 @@ final class FileBrowser {
             } else {
                 setStatus(errStr)
             }
-            autoLoadTask?.cancel()
             files = []
             _sortDirty = true
         }

@@ -10,12 +10,13 @@ extension ADBService {
 
         // 方案 1: ls -1aF（只列文件名不做 stat，大文件夹秒出不死锁）
         let escPath1 = shellEscape(dirPath)
-        let overfetch = maxCount + 50  // 余量防止输出中的 ./ ../ 子目录占行
-        let headPipe: String = skip > 0
+        let huge = maxCount >= 50000  // 全量加载模式，不截断
+        let overfetch = maxCount + 50
+        let headPipe: String = huge ? "" : (skip > 0
             ? " | head -\(skip + overfetch) | tail -\(overfetch)"
-            : " | head -\(overfetch)"
+            : " | head -\(overfetch)")
         do {
-            let lsOutput = try run(["-s", device, "shell", "ls -1aF \"\(escPath1)\"\(headPipe)"], timeout: 10)
+            let lsOutput = try run(["-s", device, "shell", "ls -1aF \"\(escPath1)\"\(headPipe)"], timeout: huge ? 30 : 10)
             if !lsOutput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 items = parseLs1aOutput(lsOutput, dirPath: path, usesF: true)
                 if items.isEmpty {
