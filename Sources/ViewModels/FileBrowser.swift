@@ -247,7 +247,7 @@ final class FileBrowser {
             }.value
             androidFMLog("FileBrowser.loadDirectory: got \(result.count) files")
             files = result
-            hasMore = result.count == 500
+            hasMore = result.count == pageSize
             _sortDirty = true
             statusMessage = nil
         } catch {
@@ -276,7 +276,7 @@ final class FileBrowser {
             }.value
             androidFMLog("FileBrowser.loadMore: got \(result.count) files, total=\(files.count + result.count)")
             files.append(contentsOf: result)
-            hasMore = result.count == 500
+            hasMore = result.count == pageSize
             _sortDirty = true
         } catch {
             androidFMLog("FileBrowser.loadMore ERROR: \(error)")
