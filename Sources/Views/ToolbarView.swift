@@ -84,6 +84,10 @@ struct ToolbarView: View {
                 }
             }
 
+            tbBtn("checkmark.rectangle", "全选", disabled: fileBrowser.sortedFiles.isEmpty) {
+                fileBrowser.selectAll()
+            }
+
             tbBtn("trash", "删除", disabled: fileBrowser.selectionCount == 0, danger: true) {
                 showDeleteConfirm = true
             }
