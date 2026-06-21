@@ -250,6 +250,10 @@ final class FileBrowser {
             hasMore = result.count >= pageSize
             _sortDirty = true
             statusMessage = nil
+            // 后台补元数据（ls -la，如果首屏是 ls -1aF 则都是 0KB）
+            Task.detached { [weak self, adb, device] in
+                await self?.refreshMetadata(adb: adb, device: device)
+            }
         } catch {
             androidFMLog("FileBrowser.loadDirectory ERROR: \(error)")
             let errStr = error.localizedDescription
@@ -260,6 +264,34 @@ final class FileBrowser {
             }
             files = []
             _sortDirty = true
+        }
+    }
+
+    // MARK: - 元数据补全
+
+    private func refreshMetadata(adb: ADBService, device: String) async {
+        let path = currentPath
+        do {
+            let cmd = "ls -la \"\(adb.shellEscape(path))\" | head -\(pageSize + 50)"
+            let output = try adb.run(["-s", device, "shell", cmd], timeout: 10)
+            let metaItems = parseLsLaOutput(output, dirPath: path)
+            guard !metaItems.isEmpty else { return }
+            var metaMap: [String: FileItem] = [:]
+            for m in metaItems { metaMap[m.name] = m }
+            for i in files.indices {
+                if let meta = metaMap[files[i].name] {
+                    files[i] = FileItem(
+                        name: files[i].name, path: files[i].path,
+                        isDirectory: files[i].isDirectory,
+                        size: meta.size, permissions: meta.permissions,
+                        modifiedDate: meta.modifiedDate
+                    )
+                }
+            }
+            _sortDirty = true
+            androidFMLog("refreshMetadata: updated \(min(metaMap.count, files.count)) items")
+        } catch {
+            androidFMLog("refreshMetadata: ls -la failed: \(error)")
         }
     }
 
