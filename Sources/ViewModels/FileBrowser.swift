@@ -12,21 +12,22 @@ final class FileBrowser {
         didSet { defaults.set(currentPath, forKey: "currentPath") }
     }
     var files: [FileItem] = [] {
-        didSet { _sortDirty = true }
+        didSet { }
     }
+    /// 实际显示的文件列表（加载更多时只追加，不重排序，保持滚动位置）
+    var displayItems: [FileItem] = []
     var selectedFile: FileItem?
     var selectedFiles: Set<FileItem> = []
     var isLoading = false
     var hasMore = false
-    private var autoLoadTask: Task<Void, Never>?
-    private let pageSize = 2000
+    private let pageSize = 20000
     var pathStack: [String] = []
 
     // Set after init by the App
     var searchManager: SearchManager?
 
     var fileTypeFilter: FileTypeFilter = .all {
-        didSet { if oldValue != fileTypeFilter { _sortDirty = true } }
+        didSet { if oldValue != fileTypeFilter { } }
     }
 
     // 排序
@@ -67,7 +68,7 @@ final class FileBrowser {
     }() {
         didSet {
             defaults.set(sortOrder.rawValue, forKey: "sortOrder")
-            if oldValue != sortOrder { _sortDirty = true }
+            if oldValue != sortOrder { }
         }
     }
 
@@ -158,12 +159,32 @@ final class FileBrowser {
         return renamed
     }
 
-    // MARK: - 排序后的文件列表（带缓存，避免 SwiftUI 重绘时重复排序）
+    // MARK: - 排序后的文件列表（实时计算，加载更多时不触发全局重排）
 
-    private var _sortedCache: [FileItem] = []
-    private var _sortDirty = true
-
-    // MARK: - 目录书签
+    var sortedFiles: [FileItem] {
+        let filtered = fileTypeFilter == .all ? files : files.filter { f in
+            let ext = (f.name as NSString).pathExtension.lowercased()
+            return f.isDirectory || fileTypeFilter.extensions.contains(ext)
+        }
+        return filtered.sorted { a, b in
+        // 文件夹始终在前
+        if a.isDirectory != b.isDirectory { return a.isDirectory }
+        switch sortOrder {
+        case .nameAsc:  return a.name.localizedStandardCompare(b.name) == .orderedAscending
+        case .nameDesc: return a.name.localizedStandardCompare(b.name) == .orderedDescending
+        case .sizeAsc:  return a.size < b.size
+        case .sizeDesc: return a.size > b.size
+        case .dateAsc:
+            let da = a.modifiedDate ?? .distantPast
+            let db = b.modifiedDate ?? .distantPast
+            return da < db
+        case .dateDesc:
+            let da = a.modifiedDate ?? .distantPast
+            let db = b.modifiedDate ?? .distantPast
+            return da > db
+        }
+        }
+    }
 
     var bookmarks: [Bookmark] {
         get {
@@ -205,35 +226,6 @@ final class FileBrowser {
         setStatus("已移除书签")
     }
 
-    var sortedFiles: [FileItem] {
-        if _sortDirty {
-            let filtered = fileTypeFilter == .all ? files : files.filter { f in
-                let ext = (f.name as NSString).pathExtension.lowercased()
-                return f.isDirectory || fileTypeFilter.extensions.contains(ext)
-            }
-            _sortedCache = filtered.sorted { a, b in
-            // 文件夹始终在前
-            if a.isDirectory != b.isDirectory { return a.isDirectory }
-            switch sortOrder {
-            case .nameAsc:  return a.name.localizedStandardCompare(b.name) == .orderedAscending
-            case .nameDesc: return a.name.localizedStandardCompare(b.name) == .orderedDescending
-            case .sizeAsc:  return a.size < b.size
-            case .sizeDesc: return a.size > b.size
-            case .dateAsc:
-                let da = a.modifiedDate ?? .distantPast
-                let db = b.modifiedDate ?? .distantPast
-                return da < db
-            case .dateDesc:
-                let da = a.modifiedDate ?? .distantPast
-                let db = b.modifiedDate ?? .distantPast
-                return da > db
-            }
-            }
-            _sortDirty = false
-        }
-        return _sortedCache
-    }
-
     // MARK: - 目录加载
 
     func loadDirectory(device: String, path: String? = nil) async {
@@ -249,13 +241,11 @@ final class FileBrowser {
             androidFMLog("FileBrowser.loadDirectory: got \(result.count) files")
             files = result
             hasMore = result.count >= pageSize
-            _sortDirty = true
+            displayItems = sortedFiles
             statusMessage = nil
-            // 后台补元数据（ls -la）
-            Task.detached { [weak self, adb, device] in
-                await self?.refreshMetadata(adb: adb, device: device)
-            }
 
+            // 补全元数据（大小、日期等）
+            await refreshMetadata(adb: adb, device: device)
         } catch {
             androidFMLog("FileBrowser.loadDirectory ERROR: \(error)")
             let errStr = error.localizedDescription
@@ -265,7 +255,7 @@ final class FileBrowser {
                 setStatus(errStr)
             }
             files = []
-            _sortDirty = true
+            displayItems = []
         }
     }
 
@@ -290,7 +280,17 @@ final class FileBrowser {
                     )
                 }
             }
-            _sortDirty = true
+            // 同步更新 displayItems 中的元数据
+            for i in displayItems.indices {
+                if let meta = metaMap[displayItems[i].name] {
+                    displayItems[i] = FileItem(
+                        name: displayItems[i].name, path: displayItems[i].path,
+                        isDirectory: displayItems[i].isDirectory,
+                        size: meta.size, permissions: meta.permissions,
+                        modifiedDate: meta.modifiedDate
+                    )
+                }
+            }
             androidFMLog("refreshMetadata: updated \(min(metaMap.count, files.count)) items")
         } catch {
             androidFMLog("refreshMetadata: ls -la failed: \(error)")
@@ -300,7 +300,7 @@ final class FileBrowser {
     // MARK: - 分页加载
 
     func loadMore(device: String) async {
-        guard !isLoading else { return }
+        guard hasMore, !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 
@@ -312,9 +312,12 @@ final class FileBrowser {
             let existingPaths = Set(files.map(\.path))
             let newItems = result.filter { !existingPaths.contains($0.path) }
             files.append(contentsOf: newItems)
+            displayItems.append(contentsOf: newItems)
             hasMore = !newItems.isEmpty
             androidFMLog("FileBrowser.loadMore: new=\(newItems.count), hasMore=\(hasMore)")
-            _sortDirty = true
+
+            // 补全新加载文件的元数据
+            await refreshMetadata(adb: adb, device: device)
         } catch {
             androidFMLog("FileBrowser.loadMore ERROR: \(error)")
             setStatus("加载更多失败: \(error.localizedDescription)")
@@ -448,6 +451,33 @@ final class FileBrowser {
         dismissTask = Task {
             try? await Task.sleep(for: .seconds(C.statusMessageTTL))
             if statusMessage == captured { statusMessage = nil }
+        }
+    }
+
+    // MARK: - 媒体播放
+
+    private static let mediaExts: Set<String> = [
+        "mp4", "mkv", "avi", "mov", "3gp", "flv", "webm", "m4v", "wmv", "mpg", "mpeg", "ts", "rmvb",
+        "mp3", "wav", "aac", "flac", "ogg", "wma", "m4a"
+    ]
+
+    func openMedia(_ item: FileItem, device: String) {
+        let ext = (item.name as NSString).pathExtension.lowercased()
+        guard Self.mediaExts.contains(ext) else { return }
+
+        let localPath = "\(C.tmpPreviewPrefix)\(item.name)"
+        setStatus("正在传输 \(item.name)…")
+
+        Task {
+            defer { setStatus("已打开 \(item.name)") }
+            do {
+                try await adb.pullFile(device: device, remotePath: item.path, localPath: localPath) { _, _ in }
+                await MainActor.run {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: localPath))
+                }
+            } catch {
+                setStatus("传输失败: \(error.localizedDescription)")
+            }
         }
     }
 }

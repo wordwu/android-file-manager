@@ -158,6 +158,24 @@ final class ADBService: @unchecked Sendable {
                 sem.signal()
             }
 
+            // 启动后台 pipe 读取，防止大数据量时缓冲区溢出死锁
+            let stdoutAcc = NSMutableData()
+            let stderrAcc = NSMutableData()
+            let readQueue = DispatchQueue(label: "adb.pipe.read", qos: .utility)
+            let readGroup = DispatchGroup()
+
+            readGroup.enter()
+            readQueue.async {
+                stdoutAcc.append(stdoutPipe.fileHandleForReading.readDataToEndOfFile())
+                readGroup.leave()
+            }
+
+            readGroup.enter()
+            readQueue.async {
+                stderrAcc.append(stderrPipe.fileHandleForReading.readDataToEndOfFile())
+                readGroup.leave()
+            }
+
             try process.run()
 
             let deadline: DispatchTimeoutResult
@@ -171,6 +189,7 @@ final class ADBService: @unchecked Sendable {
             guard deadline == .success else {
                 process.terminate()
                 _ = sem.wait(timeout: .now() + 3) // 给进程 3s 清理
+                _ = readGroup.wait(timeout: .now() + 2)
                 if retryOnTimeout && attempt < maxRetries {
                     androidFMLog("[ADBService] 命令超时，将重试 (\(attempt+1)/\(maxRetries))")
                     continue
@@ -178,20 +197,19 @@ final class ADBService: @unchecked Sendable {
                 throw ADBError.commandFailed(exitCode: -1, stderr: "命令超时 (\(timeout)s)")
             }
 
-            let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-            let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: stdoutData, encoding: .utf8) ?? ""
+            // 等待后台读取完成
+            readGroup.wait()
+            let output = String(data: stdoutAcc as Data, encoding: .utf8) ?? ""
+            let errStr = String(data: stderrAcc as Data, encoding: .utf8) ?? ""
 
             guard exitBox.value == 0 else {
                 // 仅对 adb 连接临时性错误重试（255=连接丢失, 137=SIGKILL, 143=SIGTERM）
                 let transientCodes: Set<Int32> = [255, 137, 143]
                 if retryOnTimeout && attempt < maxRetries && transientCodes.contains(exitBox.value) {
-                    let err = String(data: stderrData, encoding: .utf8) ?? ""
-                    androidFMLog("[ADBService] 临时性错误(\(exitBox.value))，重试 (\(attempt+1)/\(maxRetries)): \(err)")
+                    androidFMLog("[ADBService] 临时性错误(\(exitBox.value))，重试 (\(attempt+1)/\(maxRetries)): \(errStr)")
                     continue
                 }
-                let err = String(data: stderrData, encoding: .utf8) ?? ""
-                throw ADBError.commandFailed(exitCode: exitBox.value, stderr: err)
+                throw ADBError.commandFailed(exitCode: exitBox.value, stderr: errStr)
             }
 
             return output

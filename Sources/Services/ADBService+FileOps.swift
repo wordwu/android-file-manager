@@ -6,34 +6,44 @@ extension ADBService {
 
     func listFiles(device: String, path: String, maxCount: Int = 500, skip: Int = 0) throws -> [FileItem] {
         let dirPath = path.hasSuffix("/") ? path : "\(path)/"
+        let escPath = shellEscape(dirPath)
+        let cacheFile = "/sdcard/.androidfm_cache_\(pathHash(dirPath)).txt"
+        let escCache = shellEscape(cacheFile)
         var items: [FileItem] = []
 
-        // 方案 1: ls -1aF（只列文件名不做 stat，大文件夹秒出不死锁）
-        let escPath1 = shellEscape(dirPath)
-        let huge = maxCount >= 50000  // 全量加载模式，不截断
-        let overfetch = maxCount + 50
-        let headPipe: String = huge ? "" : (skip > 0
-            ? " | head -\(skip + overfetch) | tail -\(overfetch)"
-            : " | head -\(overfetch)")
+        // 方案 1: 缓存文件 + sed 分页（大文件夹零卡顿）
+        if skip == 0 {
+            // 首次进目录：写缓存文件
+            let cacheCmd = "ls -1aF \"\(escPath)\" > \(escCache) 2>/dev/null"
+            do {
+                _ = try run(["-s", device, "shell", cacheCmd], timeout: 10)
+            } catch {
+                androidFMLog("listFiles: 缓存写入失败: \(error)")
+            }
+        }
+
+        let startLine = skip + 1
+        let endLine = skip + maxCount
+        let sedCmd = "sed -n '\(startLine),\(endLine)p' \(escCache) 2>/dev/null"
         do {
-            let lsOutput = try run(["-s", device, "shell", "ls -1aF \"\(escPath1)\"\(headPipe)"], timeout: huge ? 30 : 10)
+            let lsOutput = try run(["-s", device, "shell", sedCmd], timeout: 5)
             if !lsOutput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 items = parseLs1aOutput(lsOutput, dirPath: path, usesF: true)
                 if items.isEmpty {
-                    androidFMLog("listFiles: ls -1aF 解析出 0 条, output=\(lsOutput.prefix(200))")
+                    androidFMLog("listFiles: sed 解析出 0 条, output=\(lsOutput.prefix(200))")
                 }
             }
         } catch {
-            androidFMLog("listFiles: ls -1aF 失败: \(error)")
+            androidFMLog("listFiles: sed 分页失败: \(error)")
         }
 
         // 方案 2: find + stat 回退（兼容老设备的 toybox/busybox）
         if items.isEmpty {
-            androidFMLog("listFiles: ls -1aF 未返回数据，回退 find + stat, path=\(dirPath)")
+            androidFMLog("listFiles: sed 未返回数据，回退 find + stat, path=\(dirPath)")
             let escapedDir = shellEscape(dirPath)
             let cmd = "find \"\(escapedDir)\" -maxdepth 1 -mindepth 1 2>/dev/null | while read f; do s=$(stat -c \"%s|%Y\" \"$f\" 2>/dev/null || echo \"0|0\"); [ -d \"$f\" ] && echo \"d|$s|$f\" || echo \"f|$s|$f\"; done"
             do {
-                let output = try run(["-s", device, "shell", cmd], timeout: 5, retryOnTimeout: true)
+                let output = try run(["-s", device, "shell", cmd], timeout: 5, retryOnTimeout: false)
                 if !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     items = parseFindStatOutput(output)
                     androidFMLog("listFiles: find+stat → \(items.count) items")
@@ -43,28 +53,27 @@ extension ADBService {
             }
         }
 
-        // 方案 3: ls -1a 最后兜底
+        // 方案 3: ls -1aFa 最后兜底
         if items.isEmpty {
             androidFMLog("listFiles: no items, trying ls -1aF fallback")
-            // 先试 -F（文件名后缀 / 标记目录），失败回退 -1a
             let escPath3 = shellEscape(dirPath)
             let simpleOut: String
-            if let fOut = try? run(["-s", device, "shell", "ls -1aF \"\(escPath3)\""], retryOnTimeout: true),
+            if let fOut = try? run(["-s", device, "shell", "ls -1aF \"\(escPath3)\""], retryOnTimeout: false),
                !fOut.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 simpleOut = fOut
             } else {
-                androidFMLog("listFiles: ls -1aF failed, trying ls -1ap")
-                simpleOut = (try? run(["-s", device, "shell", "ls -1ap \"\(escPath3)\""], retryOnTimeout: true)) ?? ""
+                androidFMLog("listFiles: ls -1aF failed, trying ls -1aFap")
+                simpleOut = (try? run(["-s", device, "shell", "ls -1aFap \"\(escPath3)\""], retryOnTimeout: false)) ?? ""
             }
             items = parseLs1aOutput(simpleOut, dirPath: path, usesF: true)
         }
 
-        // 方案 4: ls -1a + test -d（最后兜底，逐文件判类型）
+        // 方案 4: ls -1aFa + test -d（最后兜底，逐文件判类型）
         if items.isEmpty {
-            androidFMLog("listFiles: ls -1ap failed, trying ls -1a + test -d")
+            androidFMLog("listFiles: ls -1aFap failed, trying ls -1aFa + test -d")
             let escDir = shellEscape(dirPath)
-            let cmd = "cd -P \"\(escDir)\" 2>/dev/null && ls -1a | while read f; do [ \"$f\" = \".\" ] && continue; [ \"$f\" = \"..\" ] && continue; if [ -d \"$f\" ]; then echo \"d|$f\"; else echo \"f|$f\"; fi; done"
-            if let output = try? run(["-s", device, "shell", cmd], retryOnTimeout: true),
+            let cmd = "cd -P \"\(escDir)\" 2>/dev/null && ls -1aFa | while read f; do [ \"$f\" = \".\" ] && continue; [ \"$f\" = \"..\" ] && continue; if [ -d \"$f\" ]; then echo \"d|$f\"; else echo \"f|$f\"; fi; done"
+            if let output = try? run(["-s", device, "shell", cmd], retryOnTimeout: false),
                !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 items = parseTestDOutput(output, dirPath: path)
             }
@@ -73,7 +82,7 @@ extension ADBService {
         if items.count > maxCount {
             items = Array(items.prefix(maxCount))
         }
-        androidFMLog("listFiles: \(items.count) items from \(path)")
+        androidFMLog("listFiles: \(items.count) items from \(path) (skip=\(skip), cache)")
         return items.sorted { a, b in
             if a.isDirectory != b.isDirectory { return a.isDirectory }
             return a.name.localizedStandardCompare(b.name) == .orderedAscending
@@ -94,7 +103,7 @@ extension ADBService {
     func renameItem(device: String, from oldPath: String, to newPath: String) throws {
         let cmd = "mv \"\(shellEscape(oldPath))\" \"\(shellEscape(newPath))\""
         androidFMLog("renameItem: adb -s \(device) shell \(cmd)")
-        _ = try run(["-s", device, "shell", cmd], retryOnTimeout: true)
+        _ = try run(["-s", device, "shell", cmd], retryOnTimeout: false)
     }
 
     /// 执行通用 shell 命令，返回 stdout
@@ -344,7 +353,7 @@ func parseFindStatOutput(_ output: String) -> [FileItem] {
     return items
 }
 
-/// 解析 ls -1aF 或 ls -1ap 输出 → [FileItem]
+/// 解析 ls -1aF 或 ls -1aFap 输出 → [FileItem]
 func parseLs1aOutput(_ output: String, dirPath: String, usesF: Bool) -> [FileItem] {
     var items: [FileItem] = []
     for line in output.components(separatedBy: "\n") {
@@ -385,4 +394,15 @@ func parseTestDOutput(_ output: String, dirPath: String) -> [FileItem] {
         items.append(FileItem(name: name, path: path, isDirectory: isDir, size: 0, permissions: "", modifiedDate: nil))
     }
     return items
+}
+
+// MARK: - 路径哈希（djb2，用于缓存文件命名）
+
+/// djb2 哈希：将目录路径映射为简短哈希值，用作缓存文件名片段
+private func pathHash(_ path: String) -> String {
+    var hash: UInt64 = 5381
+    for c in path.utf8 {
+        hash = ((hash &<< 5) &+ hash) &+ UInt64(c)
+    }
+    return String(hash, radix: 16)
 }

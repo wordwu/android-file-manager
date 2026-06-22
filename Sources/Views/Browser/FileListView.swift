@@ -99,12 +99,14 @@ struct FileListView: View {
     private struct FileTapModifier: ViewModifier {
         let item: FileItem
         let browser: FileBrowser
+        let device: String
         
         func body(content: Content) -> some View {
             content
                 .onTapGesture(count: 2) {
                     browser.clearSelection()
                     if item.isDirectory { browser.navigateInto(item) }
+                    else { browser.openMedia(item, device: device) }
                 }
                 .onTapGesture(count: 1) {
                     if NSEvent.modifierFlags.contains(.command) {
@@ -120,57 +122,64 @@ struct FileListView: View {
     // MARK: - 列表视图
 
     private var fileList: some View {
-        List {
-            ForEach(fileBrowser.sortedFiles) { item in
-                FileRowView(
-                    item: item,
-                    isSelected: isItemActive(item),
-                    isMultiSelected: fileBrowser.selectedFiles.contains(item),
-                    thumbnail: thumbnailCache.get(item.path)
-                )
-                .contentShape(Rectangle())
-                .modifier(FileTapModifier(item: item, browser: fileBrowser))
-                .onAppear {
-                    if let device = deviceManager.selectedDevice {
-                        thumbnailCache.load(for: item, device: device)
-                    }
-                }
-                .contextMenu { contextMenu(items: [item]) }
-            }
-            if !fileBrowser.files.isEmpty {
-                HStack {
-                    Spacer()
-                    Text("已加载 \(totalLoadedSize) · \(fileBrowser.files.count) 项")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    Spacer()
-                }
-                .padding(.vertical, 4)
-            }
-            // 状态标签
-            Text("文件数: \(fileBrowser.files.count) | hasMore: \(fileBrowser.hasMore ? "是" : "否")")
-                .font(.caption2).foregroundStyle(.secondary).padding(.top, 2)
-            if fileBrowser.hasMore {
-                HStack {
-                    Spacer()
-                    Button {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(fileBrowser.displayItems) { item in
+                    FileRowView(
+                        item: item,
+                        isSelected: isItemActive(item),
+                        isMultiSelected: fileBrowser.selectedFiles.contains(item),
+                        thumbnail: thumbnailCache.get(item.path)
+                    )
+                    .id(item.id)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 3)
+                    .background(isItemActive(item) ? Color.accentColor.opacity(0.1) : Color.clear)
+                    .contentShape(Rectangle())
+                    .modifier(FileTapModifier(item: item, browser: fileBrowser, device: deviceManager.selectedDevice?.id ?? ""))
+                    .onAppear {
                         if let device = deviceManager.selectedDevice {
-                            Task { await fileBrowser.loadMore(device: device.id) }
-                        }
-                    } label: {
-                        if fileBrowser.isLoading {
-                            ProgressView().scaleEffect(0.6)
-                        } else {
-                            Label("加载更多…", systemImage: "arrow.down.circle")
+                            thumbnailCache.load(for: item, device: device)
                         }
                     }
-                    .disabled(fileBrowser.isLoading)
-                    Spacer()
+                    .contextMenu { contextMenu(items: [item]) }
+
+                    Divider().padding(.leading, 12)
                 }
-                .padding(.vertical, 8)
+                if !fileBrowser.files.isEmpty {
+                    HStack {
+                        Spacer()
+                        Text("已加载 \(totalLoadedSize) · \(fileBrowser.files.count) 项")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                }
+                Text("文件数: \(fileBrowser.files.count) | hasMore: \(fileBrowser.hasMore ? "是" : "否")")
+                    .font(.caption2).foregroundStyle(.secondary).padding(.top, 2)
+                if fileBrowser.hasMore {
+                    HStack {
+                        Spacer()
+                        Button {
+                            if let device = deviceManager.selectedDevice {
+                                Task { await fileBrowser.loadMore(device: device.id) }
+                            }
+                        } label: {
+                            if fileBrowser.isLoading {
+                                ProgressView().scaleEffect(0.6)
+                            } else {
+                                Label("加载更多…", systemImage: "arrow.down.circle")
+                            }
+                        }
+                        .disabled(fileBrowser.isLoading)
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                }
             }
+            .padding(.vertical, 4)
         }
-        .listStyle(.inset(alternatesRowBackgrounds: true))
         .onDrop(of: [.fileURL], isTargeted: .none) { providers in
             handleDrop(providers: providers)
         }
@@ -224,7 +233,7 @@ struct FileListView: View {
         .background(active ? Color.accentColor.opacity(0.15) : Color.clear)
         .cornerRadius(6)
         .contentShape(Rectangle())
-        .modifier(FileTapModifier(item: item, browser: fileBrowser))
+        .modifier(FileTapModifier(item: item, browser: fileBrowser, device: deviceManager.selectedDevice?.id ?? ""))
     }
 
     private var iconGrid: some View {
@@ -234,7 +243,7 @@ struct FileListView: View {
             ZStack {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(fileBrowser.sortedFiles) { item in
+                        ForEach(fileBrowser.displayItems) { item in
                             gridCell(item)
                                 .background(
                                     GeometryReader { cellGeo in
@@ -254,7 +263,6 @@ struct FileListView: View {
                     }
                     .padding(12)
                     
-                    // 已加载大小
                     if !fileBrowser.files.isEmpty {
                         HStack {
                             Spacer()
@@ -265,7 +273,6 @@ struct FileListView: View {
                         }
                         .padding(.bottom, 4)
                     }
-                    // 加载更多按钮
                     Text("文件数: \(fileBrowser.files.count) | hasMore: \(fileBrowser.hasMore ? "是" : "否")")
                         .font(.caption2).foregroundStyle(.secondary)
                     if fileBrowser.hasMore {
@@ -290,7 +297,6 @@ struct FileListView: View {
                 }
                 .coordinateSpace(name: "iconGrid")
 
-                // 拖拽选择矩形
                 if let rect = dragRect {
                     Rectangle()
                         .fill(Color.accentColor.opacity(0.2))
@@ -319,7 +325,7 @@ struct FileListView: View {
                     dragRect = rect
 
                     // 选中与拖拽矩形重叠的单元格
-                    let overlapping = fileBrowser.sortedFiles.filter { item in
+                    let overlapping = fileBrowser.displayItems.filter { item in
                         guard let frame = cellFrames[item.id] else { return false }
                         return rect.intersects(frame)
                     }
