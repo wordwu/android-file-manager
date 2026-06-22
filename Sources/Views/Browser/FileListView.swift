@@ -156,8 +156,6 @@ struct FileListView: View {
                     }
                     .padding(.vertical, 8)
                 }
-                Text("文件数: \(fileBrowser.files.count) | hasMore: \(fileBrowser.hasMore ? "是" : "否")")
-                    .font(.caption2).foregroundStyle(.secondary).padding(.top, 2)
                 if fileBrowser.hasMore {
                     HStack {
                         Spacer()
@@ -273,8 +271,6 @@ struct FileListView: View {
                         }
                         .padding(.bottom, 4)
                     }
-                    Text("文件数: \(fileBrowser.files.count) | hasMore: \(fileBrowser.hasMore ? "是" : "否")")
-                        .font(.caption2).foregroundStyle(.secondary)
                     if fileBrowser.hasMore {
                         HStack {
                             Spacer()

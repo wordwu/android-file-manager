@@ -11,9 +11,7 @@ final class FileBrowser {
     var currentPath: String = UserDefaults.standard.string(forKey: "currentPath") ?? "/sdcard" {
         didSet { defaults.set(currentPath, forKey: "currentPath") }
     }
-    var files: [FileItem] = [] {
-        didSet { }
-    }
+    var files: [FileItem] = []
     /// 实际显示的文件列表（加载更多时只追加，不重排序，保持滚动位置）
     var displayItems: [FileItem] = []
     var selectedFile: FileItem?
@@ -26,9 +24,7 @@ final class FileBrowser {
     // Set after init by the App
     var searchManager: SearchManager?
 
-    var fileTypeFilter: FileTypeFilter = .all {
-        didSet { if oldValue != fileTypeFilter { } }
-    }
+    var fileTypeFilter: FileTypeFilter = .all
 
     // 排序
     enum SortOrder: String, CaseIterable {
@@ -68,7 +64,6 @@ final class FileBrowser {
     }() {
         didSet {
             defaults.set(sortOrder.rawValue, forKey: "sortOrder")
-            if oldValue != sortOrder { }
         }
     }
 
