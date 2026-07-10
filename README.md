@@ -1,118 +1,148 @@
-# 安卓文件小助理
+<p align="center">
+  <img src="AppIcon.iconset/icon_128x128.png" width="80" alt="安卓文件小助理">
+</p>
 
-macOS 原生安卓文件管理器，零依赖，开箱即用。
+<h1 align="center">安卓文件小助理</h1>
+<p align="center">macOS 原生安卓文件管理器 · 零依赖 · 开箱即用</p>
 
-## 功能
+<p align="center">
+  <a href="#-下载"><b>⬇️ 立即下载</b></a> &nbsp;·&nbsp;
+  <a href="#-功能">功能</a> &nbsp;·&nbsp;
+  <a href="#-截图">截图</a> &nbsp;·&nbsp;
+  <a href="#-使用">使用</a>
+</p>
 
-- 📱 USB / 无线 ADB 双模式连接
-- 📂 文件浏览（列表 / 图标网格）
-- 📋 多选复制 / 剪切 / 粘贴（重名自动编号）
-- 🔍 递归搜索（300ms 防抖）
-- 📤 拖拽上传 + 快捷键下载
-- 🌐 一键启用无线 ADB
-- 🖼️ 图片预览
-- 🪞 屏幕镜像（scrcpy，鼠标/键盘实时操控手机）
+---
 
-## 安装
+## 📥 下载
 
-1. 下载 `安卓文件小助理.zip`
-2. 解压，把 `安卓文件小助理.app` 拖到 `应用程序` 文件夹
-3. 双击打开
+👉 **[点击下载最新 DMG (v4.1)](https://github.com/wordwu/android-file-manager/releases)**
 
-> 首次打开时，macOS 可能提示"无法验证开发者"。在 **系统设置 → 隐私与安全性** 中点击"仍要打开"即可。
+> 首次打开时，macOS 可能提示"无法验证开发者"。**系统设置 → 隐私与安全性** → 点击"仍要打开"即可。
 
-## 使用
+---
+
+## 📸 截图
+
+<!-- TODO: 替换为实际截图 -->
+<!-- 截屏快捷键: Shift+Cmd+4 然后按空格键，点击 app 窗口即可 -->
+
+| 文件浏览 | 图标网格 | 应用管理 |
+|:---:|:---:|:---:|
+| ![list](docs/screenshots/list.png) | ![grid](docs/screenshots/grid.png) | ![apps](docs/screenshots/apps.png) |
+
+| 屏幕镜像 | 设备信息 | 传输面板 |
+|:---:|:---:|:---:|
+| ![mirror](docs/screenshots/mirror.png) | ![device](docs/screenshots/device.png) | ![transfer](docs/screenshots/transfer.png) |
+
+---
+
+## ✨ 功能
+
+- 📱 **USB / WiFi 无线**双模式连接，一键切 TCP
+- 📂 **文件浏览**：列表 / 图标网格双视图，图片缩略图实时加载
+- 📋 **剪切/复制/粘贴**，重名自动编号
+- 🔍 **递归搜索**，300ms 防抖，100 条结果
+- 📤 **拖拽上传**到设备 + 快捷键下载到 Mac
+- 📦 **应用管理**：列出所有应用、导出 APK、安装/卸载
+- 📊 **设备信息**：电池、存储、系统版本一目了然
+- 📞 **通话记录**查看（多厂商 URI 适配）
+- 🪞 **屏幕镜像**（内嵌 scrcpy，鼠标/键盘实时操控手机）
+- 🏷️ **批量重命名**：前缀/后缀/替换/编号四种模式
+
+---
+
+## 🔧 使用
 
 ### 连接手机
 
 1. 手机开启 **开发者选项 → USB 调试**
-2. 用数据线连接电脑
-3. 手机上点击「允许 USB 调试」
-4. App 侧边栏自动出现设备
+2. 数据线连电脑，手机上点「允许」
+3. 侧边栏自动出现设备
 
 ### 无线连接
 
-1. 确保手机和电脑在同一个 WiFi
-2. USB 连接后，点击设备旁的 **WiFi 图标**
-3. 拔掉数据线，侧边栏会出现无线设备
+1. 确保手机和电脑同一 WiFi
+2. USB 连接后点击设备旁的 **📡 图标**
+3. 拔线，无线设备自动出现
 
 ### 快捷键
 
-| 快捷键 | 操作 |
-|--------|------|
-| `⌘C` | 复制 |
-| `⌘X` | 剪切 |
-| `⌘V` | 粘贴 |
+| 按键 | 操作 |
+|------|------|
+| `⌘C` / `⌘X` / `⌘V` | 复制 / 剪切 / 粘贴 |
 | `⌘D` | 下载到 ~/Downloads |
 | `⌘F` | 搜索 |
 | `Delete` | 删除 |
 | `Cmd+点击` | 多选 |
+| `F11` | 屏幕镜像全屏 |
 
-### 屏幕镜像快捷键（scrcpy 窗口内）
+---
 
-打开屏幕镜像后，在镜像窗口中可使用以下快捷键操控手机：
-
-| 快捷键 | 操作 |
-|--------|------|
-| `Option+H` | 回主页 |
-| `Option+B` | 返回 |
-| `Option+S` | 最近应用 |
-| `Option+N` | 下拉通知 |
-| `Option+P` | 锁屏/亮屏 |
-| `F11` | 全屏切换 |
-| `Option+Q` | 退出镜像 |
-| `鼠标点击` | 触控（等同于手指点按） |
-| `鼠标滑动` | 手势操作（滚屏/翻页） |
-| `鼠标右键` | 弹出 Home/Back/Recent 菜单 |
-
-> **键盘输入前提**：手机需开启「开发者选项 → USB 调试（安全设置）」，然后鼠标先点一下手机画面中的输入框，电脑键盘即可输入文字。
-
-## 系统要求
+## 💻 系统要求
 
 - macOS 15.0+
 - Apple Silicon (M1/M2/M3/M4)
-- Android 4.0+（USB），Android 5.0+（无线）
+- Android 4.0+ (USB)，5.0+ (无线)
 
-## 技术
+---
 
-- SwiftUI + MVVM 架构
-- 内嵌 ADB，零外部依赖
-- 安装包 31MB
-
-## 开发
+## 👨‍💻 开发
 
 ```bash
-# 克隆后进入目录
-cd AndroidFileManager
-
-# 编译
-swift build
-
-# 测试
-swift test
-
-# 打包 .app
-./build.sh
+git clone https://github.com/wordwu/android-file-manager.git
+cd android-file-manager
+swift build        # 编译
+swift test         # 测试
+./build.sh         # 打包 .app
 ```
-## 更新日志
+
+- **架构**：SwiftUI + MVVM
+- **依赖**：内嵌 ADB，零外部依赖
+- **体积**：安装包约 32MB
+
+---
+
+## 🧾 English
+
+**Android File Assistant** — a native macOS Android file manager. Zero external dependencies, plug and play.
+
+- USB & wireless ADB connections
+- File browser with list/grid views and image thumbnails
+- Cut/copy/paste with auto-numbering on name conflicts
+- Recursive search with 300ms debounce
+- Drag-and-drop upload, keyboard shortcut download
+- App management (list, export APKs, install/uninstall)
+- Device info (battery, storage, system version)
+- Call log viewer
+- Screen mirroring via built-in scrcpy
+- Batch rename (prefix/suffix/replace/numbering)
+
+**Download**: [Latest DMG](https://github.com/wordwu/android-file-manager/releases)
+
+**Requirements**: macOS 15.0+, Apple Silicon, Android 4.0+
+
+---
+
+## 📝 更新日志
 
 ### v4.1 (2026-06-23)
-
-**大文件夹性能翻倍 + 视频播放：**
-- 缓存分页：首次进目录 ls -1aF 写设备缓存（~1.6s），翻页 sed 读缓存（~0.03s），彻底解决 head+tail 线性衰减
-- pipe 死锁修复：后台线程异步消费 stdout/stderr，大数据量输出不再因缓冲区溢出超时
-- 一次性全量加载：pageSize 20000，不再需要手动翻页
-- 滚动位置保持：显示列表与排序解耦，纯追加不重排，加载后位置不跳
-- 元数据补全：加载目录后自动 ls -la 更新大小/日期，不再显示 0K
-- 视频/音频双击播放：pull 到本地临时目录 → 系统默认播放器打开。支持 mp4/mkv/avi/mov/mp3/flac 等 20+ 格式
-- 清理废代码：删除调试文字、空 didSet、无效对比逻辑
+- 大文件夹性能翻倍：缓存分页，首屏 ~1.6s，翻页 ~0.03s
+- pipe 死锁修复：后台异步消费 stdout/stderr
+- 一次性全量加载 20000 条
+- 滚动位置保持：追加不重排
+- 元数据补全：自动 ls -la 更新大小/日期
+- 视频/音频双击播放
 
 ### v4.0 (2026-06-21)
+- 文件列表分页加载（每批 2000 条）
+- 缩略图 4 并发异步加载
+- >5MB 文件跳过缩略图
+- 底部显示总大小
+- 「加载更多」按钮
 
-**性能修复 — 照片文件夹不再卡死：**
-- 文件列表分页加载（每批 2000 条），支持翻页追加
-- 缩略图 4 并发异步加载，不走 ADB 串行队列
-- 超大文件（>5MB）自动跳过缩略图，只显示系统图标
-- 列表底部显示「已加载 X MB」总大小
-- 「加载更多」按钮，超过 2000 条时触发
-- head 余量修复：防止子目录/隐藏文件占行导致分页提前截断
+---
+
+<p align="center">
+  <sub>Made with ❤️ by <a href="https://github.com/wordwu">wordwu</a></sub>
+</p>
