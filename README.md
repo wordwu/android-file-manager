@@ -8,7 +8,6 @@
 <p align="center">
   <a href="#-下载"><b>⬇️ 立即下载</b></a> &nbsp;·&nbsp;
   <a href="#-功能">功能</a> &nbsp;·&nbsp;
-  <a href="#-截图">截图</a> &nbsp;·&nbsp;
   <a href="#-使用">使用</a>
 </p>
 
@@ -20,22 +19,6 @@
 
 > 首次打开时，macOS 可能提示"无法验证开发者"。**系统设置 → 隐私与安全性** → 点击"仍要打开"即可。
 
----
-
-## 📸 截图
-
-
-<!-- 截屏快捷键: Shift+Cmd+4 然后按空格键，点击 app 窗口即可 -->
-
-| 文件浏览 | 图标网格 | 应用管理 |
-|:---:|:---:|:---:|
-| ![list](docs/screenshots/list.png) | ![grid](docs/screenshots/grid.png) | ![apps](docs/screenshots/apps.png) |
-
-| 屏幕镜像 | 设备信息 | 传输面板 |
-|:---:|:---:|:---:|
-| ![mirror](docs/screenshots/mirror.png) | ![device](docs/screenshots/device.png) | ![transfer](docs/screenshots/transfer.png) |
-
----
 
 ## ✨ 功能
 
