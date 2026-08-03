@@ -8,6 +8,7 @@
 <p align="center">
   <a href="#-下载"><b>⬇️ 立即下载</b></a> &nbsp;·&nbsp;
   <a href="#-功能">功能</a> &nbsp;·&nbsp;
+  <a href="#-截图">截图</a> &nbsp;·&nbsp;
   <a href="#-使用">使用</a>
 </p>
 
@@ -18,6 +19,18 @@
 👉 **[点击下载最新 DMG (v4.1)](https://github.com/wordwu/android-file-manager/releases)**
 
 > 首次打开时，macOS 可能提示"无法验证开发者"。**系统设置 → 隐私与安全性** → 点击"仍要打开"即可。
+
+---
+
+## 📸 截图
+
+| 文件浏览 | 图标网格 | 应用管理 |
+|:---:|:---:|:---:|
+| ![列表视图](docs/screenshots/list.png) | ![网格视图](docs/screenshots/grid.png) | ![应用管理](docs/screenshots/apps.png) |
+
+| 屏幕镜像 | 设备信息 | 传输面板 |
+|:---:|:---:|:---:|
+| ![屏幕镜像](docs/screenshots/mirror.png) | ![设备信息](docs/screenshots/device.png) | ![传输面板](docs/screenshots/transfer.png) |
 
 
 ## ✨ 功能
